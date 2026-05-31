@@ -29,9 +29,9 @@ export async function updateSession(request: NextRequest) {
       },
     },
   );
-  //   const {
-  //     data: { user },
-  //   } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   //   if (
   //     !user &&
@@ -43,6 +43,12 @@ export async function updateSession(request: NextRequest) {
   //     return NextResponse.redirect(url);
   //   }
   if (request.nextUrl.pathname === "/") {
+    const url = request.nextUrl.clone();
+    url.pathname = "/dashboard";
+    return NextResponse.redirect(url);
+  }
+
+  if (request.nextUrl.pathname === "/signin" && user) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
     return NextResponse.redirect(url);

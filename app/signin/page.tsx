@@ -1,8 +1,55 @@
 "use client";
 import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { createClient } from "@/lib/client";
+import { useRouter } from "next/navigation";
+
+type FormData = {
+  email: string;
+  password: string;
+};
 
 const SignInPage = () => {
   const [isSignUp, setIsSignUp] = useState(false);
+  const [message, setMessage] = useState("");
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<FormData>();
+  const supabase = createClient();
+  const router = useRouter();
+
+  const handleAuth = async (data: FormData) => {
+    const { email, password } = data;
+    try {
+      if (isSignUp) {
+        const { error } = await supabase.auth.signUp({ email, password });
+        if (error) {
+          throw error;
+        }
+        setMessage(
+          "Account created! Please check your email to verify your account.",
+        );
+        setIsSignUp(false);
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        if (error) {
+          throw error;
+        }
+        router.push("/dashboard");
+      }
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "An unexpected error occurred.",
+      );
+    }
+  };
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,#eef4ff_0%,#ffffff_55%,#f7f8fb_100%)] px-4 py-12 text-foreground">
@@ -16,9 +63,18 @@ const SignInPage = () => {
               ? "Start your personalized newsletter journey."
               : "Use your email and password to continue."}
           </p>
+          {message && (
+            <div
+              role="status"
+              aria-live="polite"
+              className="mt-4 rounded-xl border border-surface-strong bg-surface px-4 py-3 text-sm text-foreground"
+            >
+              {message}
+            </div>
+          )}
         </div>
 
-        <form className="mt-8 grid gap-5">
+        <form onSubmit={handleSubmit(handleAuth)} className="mt-8 grid gap-5">
           <label
             className="grid gap-2 text-sm font-semibold text-foreground"
             htmlFor="email"
@@ -26,10 +82,10 @@ const SignInPage = () => {
             Email address
             <input
               type="email"
-              name="email"
               required
               id="email"
               placeholder="you@example.com"
+              {...register("email", { required: "Email is required!" })}
               className="h-11 rounded-xl border border-surface-strong bg-white px-4 text-sm text-foreground shadow-sm outline-none transition focus:border-primary focus:ring-4 focus:ring-ring/40"
             />
           </label>
@@ -41,8 +97,8 @@ const SignInPage = () => {
             Password
             <input
               type="password"
-              name="password"
               required
+              {...register("password", { required: "Password is required!" })}
               id="password"
               placeholder="••••••••"
               className="h-11 rounded-xl border border-surface-strong bg-white px-4 text-sm text-foreground shadow-sm outline-none transition focus:border-primary focus:ring-4 focus:ring-ring/40"
@@ -70,7 +126,6 @@ const SignInPage = () => {
               ? "Already have an account? Sign in"
               : "Don't have an account? Sign up"}
           </button>
-      
         </div>
       </div>
     </div>
