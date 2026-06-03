@@ -24,7 +24,7 @@ export const fetchArticles = async (
       }
       const data = await res.json();
 
-      return data.articles.slice(0,5).map((article: any) => {
+      return data.articles.slice(0, 5).map((article: any) => {
         return {
           title: article.title || "No title",
           url: article.url || "",
