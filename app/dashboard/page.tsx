@@ -11,9 +11,11 @@ import {
   Calendar,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import {useRouter} from "next/navigation"
 
 const DashboardPage = () => {
   const { user } = useAuth();
+  const router = useRouter();
 
   return (
     <div className="min-h-screen bg-indigo-50/40 py-12 font-sans">
@@ -148,7 +150,7 @@ const DashboardPage = () => {
               <h2 className="text-xl font-bold text-gray-900 mb-6">Actions</h2>
 
               <div className="space-y-4">
-                <button className="w-full cursor-pointer flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                <button onClick={() => router.push("/select")} className="w-full cursor-pointer flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
                   <Pencil className="w-4 h-4" />
                   <span>Update Preferences</span>
                 </button>
