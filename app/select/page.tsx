@@ -1,9 +1,14 @@
 "use client";
 
-import { useState } from "react";
 import { Check, Sparkles } from "lucide-react";
-import {useAuth} from "@/contexts/AuthContext";
-import { FormEvent } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+
+type FormValues = {
+  categories: string[];
+  frequency: string;
+};
 
 const categories = [
   {
@@ -47,34 +52,65 @@ const frequencyOptions = [
 ];
 
 export default function SelectPage() {
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [selectedFrequency, setSelectedFrequency] = useState<string>("weekly");
-  const {user} = useAuth();
+  const { user } = useAuth();
+  const router = useRouter();
 
-  const handleCategoryToggle = (categoryId: string) => {
-    setSelectedCategories((prev) =>
-      prev.includes(categoryId)
-        ? prev.filter((id) => id !== categoryId)
-        : [...prev, categoryId],
-    );
-  };
+  const {
+    register,
+    handleSubmit,
+    watch,
+    formState: { isSubmitting },
+  } = useForm<FormValues>({
+    defaultValues: {
+      categories: [],
+      frequency: "weekly",
+    },
+  });
 
-  const handlePreferences = (e: FormEvent) => {
-    e.preventDefault();
-    if(selectedCategories.length === 0) {
+  const selectedCategories = watch("categories") || [];
+  const selectedFrequency = watch("frequency") || "weekly";
+
+  const handlePreferences = async (data: FormValues) => {
+    if (data.categories.length === 0) {
       alert("Please select at least one category");
       return;
     }
-    if(!user) {
+    if (!user) {
       alert("Please log in to save your preferences");
       return;
     }
     try {
+      const response = await fetch("api/user-preferences", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          categories: data.categories,
+          frequency: data.frequency,
+          email: user.email,
+        }),
+      });
 
-    }catch() {
-      
+      if (!response.ok) {
+        throw new Error("Failed to save preferences");
+      }
+      alert(
+        "Your newsletter preferences have been saved! You will start receiving newsletters based on your selections.",
+      );
+      router.push("/dashboard");
+    } catch (error) {
+      alert("An error occurred while saving preferences. Please try again.");
     }
-  }
+  };
+
+  // Prevent generic form submission by hitting enter
+  const onKeyDown = (e: React.KeyboardEvent<HTMLFormElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+    }
+  };
+
   return (
     <div className="min-h-screen bg-indigo-50/40 py-12 font-sans">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -88,8 +124,8 @@ export default function SelectPage() {
           </p>
         </div>
 
-        {/* Grid Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Grid Layout wrapped to React Hook Form */}
+        <form onSubmit={handleSubmit(handlePreferences)} onKeyDown={onKeyDown} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Configuration Area - Spans 2 columns */}
           <div className="lg:col-span-2 space-y-8">
             {/* Categories Card */}
@@ -114,9 +150,9 @@ export default function SelectPage() {
                   >
                     <input
                       type="checkbox"
+                      value={category.id}
                       className="sr-only"
-                      checked={selectedCategories.includes(category.id)}
-                      onChange={() => handleCategoryToggle(category.id)}
+                      {...register("categories")}
                     />
                     <div className="flex items-center h-5 mt-0.5">
                       <div
@@ -165,10 +201,9 @@ export default function SelectPage() {
                   >
                     <input
                       type="radio"
-                      name="frequency"
+                      value={frequency.id}
                       className="sr-only"
-                      checked={selectedFrequency === frequency.id}
-                      onChange={() => setSelectedFrequency(frequency.id)}
+                      {...register("frequency")}
                     />
                     <div className="text-sm font-semibold text-gray-900 mb-1">
                       {frequency.name}
@@ -242,22 +277,22 @@ export default function SelectPage() {
                     Frequency
                   </span>
                   <span className="text-sm font-semibold text-gray-800 capitalize">
-                    {frequencyOptions.find((f) => f.id === selectedFrequency)
-                      ?.name || "Weekly"}
+                    {frequencyOptions.find((f) => f.id === selectedFrequency)?.name || "Weekly"}
                   </span>
                 </div>
 
                 <div className="pt-4">
                   <button
-                    disabled={selectedCategories.length === 0}
+                    type="submit"
+                    disabled={selectedCategories.length === 0 || isSubmitting}
                     className={`w-full flex items-center justify-center space-x-2 py-3 px-4 rounded-lg text-sm font-medium transition-colors shadow-sm ${
-                      selectedCategories.length === 0
+                      selectedCategories.length === 0 || isSubmitting
                         ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                         : "bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
                     }`}
                   >
                     <Sparkles className="w-4 h-4" />
-                    <span>Save Preferences</span>
+                    <span>{isSubmitting ? "Saving..." : "Save Preferences"}</span>
                   </button>
                   {selectedCategories.length === 0 && (
                     <p className="text-xs text-center text-red-500 mt-2 font-medium">
@@ -268,7 +303,7 @@ export default function SelectPage() {
               </div>
             </div>
           </div>
-        </div>
+        </form>
       </div>
     </div>
   );
