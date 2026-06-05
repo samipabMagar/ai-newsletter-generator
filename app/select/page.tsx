@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { Check, Sparkles } from "lucide-react";
+import {useAuth} from "@/contexts/AuthContext";
+import { FormEvent } from "react";
 
 const categories = [
   {
@@ -47,6 +49,7 @@ const frequencyOptions = [
 export default function SelectPage() {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedFrequency, setSelectedFrequency] = useState<string>("weekly");
+  const {user} = useAuth();
 
   const handleCategoryToggle = (categoryId: string) => {
     setSelectedCategories((prev) =>
@@ -56,6 +59,22 @@ export default function SelectPage() {
     );
   };
 
+  const handlePreferences = (e: FormEvent) => {
+    e.preventDefault();
+    if(selectedCategories.length === 0) {
+      alert("Please select at least one category");
+      return;
+    }
+    if(!user) {
+      alert("Please log in to save your preferences");
+      return;
+    }
+    try {
+
+    }catch() {
+      
+    }
+  }
   return (
     <div className="min-h-screen bg-indigo-50/40 py-12 font-sans">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
