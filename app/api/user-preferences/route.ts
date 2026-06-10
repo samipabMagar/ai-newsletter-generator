@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/server";
+import { inngest } from "@/lib/inngest/client";
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
@@ -18,7 +19,7 @@ export async function POST(request: NextRequest) {
   const body = await request.json();
   const { frequency, categories, email } = body;
 
-  if (!categories || Array.isArray(categories) || categories.length === 0) {
+  if (!categories || !Array.isArray(categories) || categories.length === 0) {
     return NextResponse.json(
       { error: "Please select at least one category." },
       { status: 400 },
@@ -47,6 +48,16 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  try {
+    await inngest.send({
+      name: "newsletter.schedule",
+      data: {},
+    });
+  } catch (inngestError) {
+    // Log the error but don't fail the request — preferences were already saved.
+    // This usually means the Inngest dev server is not running.
+    console.error("[Inngest] Failed to send event:", inngestError);
+  }
   return NextResponse.json({
     success: true,
     message: "Preferences saved successfully.",

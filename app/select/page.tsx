@@ -80,7 +80,7 @@ export default function SelectPage() {
       return;
     }
     try {
-      const response = await fetch("api/user-preferences", {
+      const response = await fetch("/api/user-preferences", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

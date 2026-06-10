@@ -12,7 +12,7 @@ export const fetchArticles = async (
   const promise = categories.map(async (category) => {
     try {
       const res = await fetch(
-        `https://newsapi.org/v2/everything?q=${encodeURIComponent(category)}&from=${since}&sortBy=publishedAt&apiKey=${process.env.NEWS_APIKEY}`,
+        `https://newsapi.org/v2/everything?q=${encodeURIComponent(category)}&from=${since}&sortBy=publishedAt&apiKey=${process.env.NEWS_API_KEY}`,
       );
 
       if (!res.ok) {
