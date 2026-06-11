@@ -51,7 +51,10 @@ export async function POST(request: NextRequest) {
   try {
     await inngest.send({
       name: "newsletter.schedule",
-      data: {},
+      data: {
+        categories,
+        email,
+      },
     });
   } catch (inngestError) {
     // Log the error but don't fail the request — preferences were already saved.

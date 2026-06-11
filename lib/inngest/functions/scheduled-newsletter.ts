@@ -1,16 +1,12 @@
 import { inngest } from "../client";
 import { fetchArticles } from "../../news";
+import { marked } from "marked";
+import { sendEmail } from "@/lib/email";
 
 export default inngest.createFunction(
   { id: "newsLetter/scheduled", triggers: [{ event: "newsletter.schedule" }] },
   async ({ event, step }) => {
-    const categories = [
-      "technology",
-      "health",
-      "sports",
-      "entertainment",
-      "business",
-    ];
+    const categories = event.data.categories;
     const allArticles = await step.run("fetch-news", async () => {
       return fetchArticles(categories);
     });
@@ -37,7 +33,7 @@ export default inngest.createFunction(
             categories requested: ${categories.join(", ")}
             
             Articles: 
-            ${allArticles.map((article: any, idx:number) => `${idx + 1}. ${article.title} \n ${article.description} \n Source: ${article.url}\n`).join("\n")}`,
+            ${allArticles.map((article: any, idx: number) => `${idx + 1}. ${article.title} \n ${article.description} \n Source: ${article.url}\n`).join("\n")}`,
               },
             ],
           },
@@ -45,7 +41,24 @@ export default inngest.createFunction(
       },
     });
 
-    console.log(summary);
-    return {};
+    const newsLetterContent = summary.candidates?.[0]?.content
+      ?.parts?.[0] as any;
+
+    if (!newsLetterContent) {
+      throw new Error("Failed to generate newsletter content");
+    }
+
+    const htmlContent = await marked(newsLetterContent.text);
+
+    const sendResult = await step.run("send-newsletter", async () => {
+      return await sendEmail(
+        event.data.categories.join(", "),
+        event.data.email,
+        allArticles.length,
+        htmlContent,
+      );
+    });
+
+    return { sendResult };
   },
 );
