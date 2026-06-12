@@ -66,3 +66,42 @@ export async function POST(request: NextRequest) {
     message: "Preferences saved successfully.",
   });
 }
+
+export async function GET() {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json(
+      { error: "you must be logged in to view preferences." },
+      { status: 401 },
+    );
+  }
+
+  try {
+    const { data: preferences, error: fetchError } = await supabase
+      .from("user_preferences")
+      .select("*")
+      .eq("user_id", user.id)
+      .single();
+
+    if (fetchError) {
+      console.error("Error fetching preferences:", fetchError);
+      return NextResponse.json(
+        { error: "An error occurred while fetching preferences." },
+        { status: 500 },
+      );
+    }
+    console.log("Fetched preferences:", preferences);
+    return NextResponse.json(preferences);
+  } catch (error) {
+    console.error("Unexpected error fetching preferences:", error);
+    return NextResponse.json(
+      { error: "An unexpected error occurred while fetching preferences." },
+      { status: 500 },
+    );
+  }
+}

@@ -10,12 +10,33 @@ import {
   Activity,
   Calendar,
 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import {useRouter} from "next/navigation"
+import { useRouter } from "next/navigation";
+
+interface UserPreferences {
+  categories: string[];
+  frequency: string;
+  email: string;
+  is_active: boolean;
+  created_at: string;
+}
 
 const DashboardPage = () => {
+  const [preferences, setPreferences] = useState<UserPreferences | null>(null);
   const { user } = useAuth();
   const router = useRouter();
+
+  useEffect(() => {
+    async function fetchPreferences() {
+      const res = await fetch("/api/user-preferences");
+      const data = await res.json();
+
+      setPreferences(data);
+    }
+
+    fetchPreferences();
+  }, []);
 
   return (
     <div className="min-h-screen bg-indigo-50/40 py-12 font-sans">
@@ -48,15 +69,20 @@ const DashboardPage = () => {
                     Categories
                   </h3>
                   <div className="flex flex-wrap gap-2">
-                    <span className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs font-semibold">
-                      technology
-                    </span>
-                    <span className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs font-semibold">
-                      sports
-                    </span>
-                    <span className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs font-semibold">
-                      politics
-                    </span>
+                    {preferences ? (
+                      preferences.categories?.map((cat) => (
+                        <span
+                          key={cat}
+                          className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs font-semibold"
+                        >
+                          {cat}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-gray-400 text-sm italic">
+                        No preferences set. Please update your preferences.
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -66,7 +92,9 @@ const DashboardPage = () => {
                     <Clock className="w-4 h-4 mr-2" />
                     Frequency
                   </h3>
-                  <p className="text-gray-900 text-base font-medium">Daily</p>
+                  <p className="text-gray-900 text-base font-medium capitalize">
+                    {preferences?.frequency || "Loading..."}
+                  </p>
                 </div>
 
                 {/* Email */}
@@ -75,8 +103,8 @@ const DashboardPage = () => {
                     <Mail className="w-4 h-4 mr-2" />
                     Email
                   </h3>
-                  <p className="text-gray-900 text-base font-medium">
-                    {user?.email || "machadop1407@gmail.com"}
+                  <p className="text-gray-900 text-base font-medium truncate">
+                    {preferences?.email || user?.email || "Loading..."}
                   </p>
                 </div>
 
@@ -87,10 +115,24 @@ const DashboardPage = () => {
                     Status
                   </h3>
                   <div className="flex items-center space-x-2 mt-1">
-                    <div className="w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse"></div>
-                    <span className="text-gray-900 text-base font-medium">
-                      Active
-                    </span>
+                    {preferences ? (
+                      <>
+                        <div
+                          className={`w-2.5 h-2.5 rounded-full ${
+                            preferences.is_active
+                              ? "bg-green-500 animate-pulse"
+                              : "bg-red-500"
+                          }`}
+                        ></div>
+                        <span className="text-gray-900 text-base font-medium">
+                          {preferences.is_active ? "Active" : "Paused"}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="text-gray-400 text-sm italic">
+                        Loading...
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -101,7 +143,9 @@ const DashboardPage = () => {
                     Created
                   </h3>
                   <p className="text-gray-900 text-base font-medium">
-                    7/17/2025
+                    {preferences?.created_at
+                      ? new Date(preferences.created_at).toLocaleDateString()
+                      : "Loading..."}
                   </p>
                 </div>
               </div>
@@ -150,7 +194,10 @@ const DashboardPage = () => {
               <h2 className="text-xl font-bold text-gray-900 mb-6">Actions</h2>
 
               <div className="space-y-4">
-                <button onClick={() => router.push("/select")} className="w-full cursor-pointer flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                <button
+                  onClick={() => router.push("/select")}
+                  className="w-full cursor-pointer flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                >
                   <Pencil className="w-4 h-4" />
                   <span>Update Preferences</span>
                 </button>
