@@ -105,3 +105,44 @@ export async function GET() {
     );
   }
 }
+
+export async function PATCH(request: NextRequest) {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json(
+      { error: "you must be logged in to update preferences." },
+      { status: 401 },
+    );
+  }
+
+  try {
+    const body = await request.json();
+    const { is_active } = body;
+
+    const { error: updateError } = await supabase
+      .from("user_preferences")
+      .update({ is_active })
+      .eq("user_id", user.id);
+    
+    if (updateError) {
+      console.error("Error updating preferences:", updateError);
+      return NextResponse.json(
+        { error: "An error occurred while updating preferences." },
+        { status: 500 },
+      );
+    }
+
+    return NextResponse.json({ success: true, is_active });
+  } catch (error) {
+    console.error("Unexpected error updating preferences:", error);
+    return NextResponse.json(
+      { error: "An unexpected error occurred while updating preferences." },
+      { status: 500 },
+    );
+  }
+}

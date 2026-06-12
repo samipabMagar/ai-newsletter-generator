@@ -9,6 +9,7 @@ import {
   Mail,
   Activity,
   Calendar,
+  Play,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -37,6 +38,23 @@ const DashboardPage = () => {
 
     fetchPreferences();
   }, []);
+
+  const handleToggleNewsletter = async () => {
+    if (!preferences) return;
+    const newStatus = !preferences.is_active;
+
+    const res = await fetch("/api/user-preferences", {
+      method: "PATCH",
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ is_active: newStatus }),
+    });
+
+    if (res.ok) {
+      setPreferences((prev) => (prev ? { ...prev, is_active: newStatus } : prev));
+    }
+  };
 
   return (
     <div className="min-h-screen bg-indigo-50/40 py-12 font-sans">
@@ -93,7 +111,7 @@ const DashboardPage = () => {
                     Frequency
                   </h3>
                   <p className="text-gray-900 text-base font-medium capitalize">
-                    {preferences?.frequency || "Loading..."}
+                    {preferences?.frequency}
                   </p>
                 </div>
 
@@ -104,7 +122,7 @@ const DashboardPage = () => {
                     Email
                   </h3>
                   <p className="text-gray-900 text-base font-medium truncate">
-                    {preferences?.email || user?.email || "Loading..."}
+                    {preferences?.email}
                   </p>
                 </div>
 
@@ -202,9 +220,16 @@ const DashboardPage = () => {
                   <span>Update Preferences</span>
                 </button>
 
-                <button className="w-full cursor-pointer flex items-center justify-center space-x-2 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 py-3 px-4 rounded-lg text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
-                  <Ban className="w-4 h-4" />
-                  <span>Pause Newsletter</span>
+                <button 
+                  onClick={handleToggleNewsletter}
+                  className={`w-full cursor-pointer flex items-center justify-center space-x-2 border py-3 px-4 rounded-lg text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                    preferences?.is_active
+                      ? "bg-red-50 hover:bg-red-100 text-red-600 border-red-200 focus:ring-red-500"
+                      : "bg-green-50 hover:bg-green-100 text-green-600 border-green-200 focus:ring-green-500"
+                  }`}
+                >
+                  {preferences?.is_active ? <Ban className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                  <span>{preferences?.is_active ? "Pause Newsletter" : "Resume Newsletter"}</span>
                 </button>
 
                 <button className="w-full cursor-pointer flex items-center justify-center space-x-2 bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 py-3 px-4 rounded-lg text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-gray-200 focus:ring-offset-2">
