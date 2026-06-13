@@ -54,6 +54,7 @@ export async function POST(request: NextRequest) {
       data: {
         categories,
         email,
+        frequency,
       },
     });
   } catch (inngestError) {
@@ -95,7 +96,7 @@ export async function GET() {
         { status: 500 },
       );
     }
-    console.log("Fetched preferences:", preferences);
+
     return NextResponse.json(preferences);
   } catch (error) {
     console.error("Unexpected error fetching preferences:", error);
@@ -128,7 +129,7 @@ export async function PATCH(request: NextRequest) {
       .from("user_preferences")
       .update({ is_active })
       .eq("user_id", user.id);
-    
+
     if (updateError) {
       console.error("Error updating preferences:", updateError);
       return NextResponse.json(

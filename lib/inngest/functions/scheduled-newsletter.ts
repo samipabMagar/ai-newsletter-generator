@@ -2,10 +2,34 @@ import { inngest } from "../client";
 import { fetchArticles } from "../../news";
 import { marked } from "marked";
 import { sendEmail } from "@/lib/email";
+import { createClient } from "@/lib/server";
 
 export default inngest.createFunction(
   { id: "newsLetter/scheduled", triggers: [{ event: "newsletter.schedule" }] },
   async ({ event, step }) => {
+    const isUserActive = await step.run("check-user-status", async () => {
+      const supabase = await createClient();
+
+      const { data, error } = await supabase
+        .from("user_preferences")
+        .select("is_active")
+        .eq("user_id", event.data.user_id)
+        .single();
+
+      if (error) {
+        console.error("Error fetching user preferences:", error);
+      }
+
+      return data?.is_active || false;
+    });
+
+    if (!isUserActive) {
+      console.log(
+        `User ${event.data.user_id} is not active. Skipping newsletter.`,
+      );
+      return { message: "User is not active. Newsletter not sent." };
+    }
+
     const categories = event.data.categories;
     const allArticles = await step.run("fetch-news", async () => {
       return fetchArticles(categories);
@@ -59,6 +83,40 @@ export default inngest.createFunction(
       );
     });
 
-    return { sendResult };
+    await step.run("schedule-next", async () => {
+      const now = new Date();
+      let nextSchedule: Date;
+
+      switch (event.data.frequency) {
+        case "daily":
+          nextSchedule = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+          break;
+        case "weekly":
+          nextSchedule = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+          break;
+        case "biweekly":
+          nextSchedule = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
+          break;
+        default:
+          nextSchedule = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+      }
+      nextSchedule.setHours(9, 0, 0, 0); // Set to 9 AM. Change only the time, keep the date as calculated above.
+
+      await inngest.send({
+        name: "newsletter.schedule",
+        data: {
+          categories,
+          email: event.data.email,
+          frequency: event.data.frequency,
+        },
+        ts: nextSchedule.getTime(),
+      });
+    });
+    return {
+      message: "Newsletter sent successfully",
+      newsLetter: htmlContent,
+      ariclesCount: allArticles.length,
+      nextScheduled: true,
+    };
   },
 );

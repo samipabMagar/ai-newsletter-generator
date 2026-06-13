@@ -4,6 +4,7 @@ import { Check, Sparkles } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
+import { toast } from "react-toastify";
 
 type FormValues = {
   categories: string[];
@@ -72,11 +73,11 @@ export default function SelectPage() {
 
   const handlePreferences = async (data: FormValues) => {
     if (data.categories.length === 0) {
-      alert("Please select at least one category");
+      toast.warning("Please select at least one category");
       return;
     }
     if (!user) {
-      alert("Please log in to save your preferences");
+      toast.error("Please log in to save your preferences");
       return;
     }
     try {
@@ -95,12 +96,12 @@ export default function SelectPage() {
       if (!response.ok) {
         throw new Error("Failed to save preferences");
       }
-      alert(
+      toast.success(
         "Your newsletter preferences have been saved! You will start receiving newsletters based on your selections.",
       );
       router.push("/dashboard");
     } catch (error) {
-      alert("An error occurred while saving preferences. Please try again.");
+      toast.error("An error occurred while saving preferences. Please try again.");
     }
   };
 
