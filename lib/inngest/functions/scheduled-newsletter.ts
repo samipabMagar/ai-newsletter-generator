@@ -5,7 +5,11 @@ import { sendEmail } from "@/lib/email";
 import { createClient } from "@/lib/server";
 
 export default inngest.createFunction(
-  { id: "newsLetter/scheduled", triggers: [{ event: "newsletter.schedule" }] },
+  {
+    id: "newsLetter/scheduled",
+    cancelOn: [{ event: "newsletter.schedule.deleted", match: "data.user_id" }], // Cancel this function if a "newsletter.schedule.deleted" event is received with a matching user_id
+    triggers: [{ event: "newsletter.schedule" }],
+  },
   async ({ event, step }) => {
     const isUserActive = await step.run("check-user-status", async () => {
       const supabase = await createClient();
@@ -108,6 +112,7 @@ export default inngest.createFunction(
           categories,
           email: event.data.email,
           frequency: event.data.frequency,
+          user_id: event.data.user_id,
         },
         ts: nextSchedule.getTime(),
       });

@@ -55,6 +55,7 @@ export async function POST(request: NextRequest) {
         categories,
         email,
         frequency,
+        user_id: user.id,
       },
     });
   } catch (inngestError) {
@@ -136,6 +137,62 @@ export async function PATCH(request: NextRequest) {
         { error: "An error occurred while updating preferences." },
         { status: 500 },
       );
+    }
+
+    if (!is_active) {
+      await inngest.send({
+        name: "newsletter.schedule.deleted",
+        data: {
+          user_id: user.id,
+        },
+      });
+    } else {
+      // If re-activating, we need to fetch the existing preferences to reschedule.
+      const { data: existingPreferences, error: fetchError } = await supabase
+        .from("user_preferences")
+        .select("categories, frequency, email")
+        .eq("user_id", user.id)
+        .single();
+      if (fetchError) {
+        console.error(
+          "Error fetching existing preferences for re-activation:",
+          fetchError,
+        );
+        return NextResponse.json(
+          { error: "An error occurred while re-activating preferences." },
+          { status: 500 },
+        );
+      }
+
+      const now = new Date();
+      let nextScheduleTime: Date;
+
+      switch (existingPreferences.frequency) {
+        case "daily":
+          nextScheduleTime = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+          break;
+        case "weekly":
+          nextScheduleTime = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+          break;
+        case "biweekly":
+          nextScheduleTime = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
+          break;
+        default:
+          nextScheduleTime = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // default to weekly if somehow frequency is invalid
+      }
+
+      nextScheduleTime.setHours(9, 0, 0, 0); // Set to 9:00 AM hour, 0 minutes, 0 seconds, 0 milliseconds
+
+      await inngest.send({
+        name: "newsletter.schedule",
+        data: {
+          categories: existingPreferences.categories,
+          email: existingPreferences.email,
+          frequency: existingPreferences.frequency,
+          user_id: user.id,
+        },
+        ts: nextScheduleTime.getTime(),
+      });
     }
 
     return NextResponse.json({ success: true, is_active });
